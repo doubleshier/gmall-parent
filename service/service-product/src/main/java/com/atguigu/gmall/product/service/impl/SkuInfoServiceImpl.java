@@ -1,10 +1,9 @@
 package com.atguigu.gmall.product.service.impl;
 
 
-import com.atguigu.gmall.model.product.SkuAttrValue;
-import com.atguigu.gmall.model.product.SkuImage;
-import com.atguigu.gmall.model.product.SkuInfo;
-import com.atguigu.gmall.model.product.SkuSaleAttrValue;
+import com.atguigu.gmall.model.product.*;
+import com.atguigu.gmall.model.to.CategoryViewTo;
+import com.atguigu.gmall.model.to.SkuDetailTo;
 import com.atguigu.gmall.product.mapper.BaseCategory3Mapper;
 import com.atguigu.gmall.product.mapper.SkuInfoMapper;
 import com.atguigu.gmall.product.service.*;
@@ -13,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -23,6 +23,7 @@ import java.util.List;
 @Service
 public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
     implements SkuInfoService{
+
 
     @Autowired
     SkuImageService skuImageService;
@@ -84,7 +85,41 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
 
 
     }
+    @Override
+    public SkuDetailTo getSkuDetail(Long skuId) {
+        SkuDetailTo detailTo = new SkuDetailTo();
 
+        SkuInfo skuInfo = skuInfoMapper.selectById(skuId);
+
+
+
+        detailTo.setSkuInfo(skuInfo);
+
+
+        List<SkuImage> imageList = skuImageService.getSkuImage(skuId);
+        skuInfo.setSkuImageList(imageList);
+
+
+        CategoryViewTo categoryViewTo = baseCategory3Mapper.getCategoryView(skuInfo.getCategory3Id());
+        detailTo.setCategoryView(categoryViewTo);
+
+        BigDecimal price = get1010Price(skuId);
+        detailTo.setPrice(price);
+
+
+        List<SpuSaleAttr> saleAttrList = spuSaleAttrService
+                .getSaleAttrAndValueMarkSku(skuInfo.getSpuId(),skuId);
+        detailTo.setSpuSaleAttrList(saleAttrList);
+
+        return detailTo;
+    }
+
+    @Override
+    public BigDecimal get1010Price(Long skuId) {
+        //性能低下
+        BigDecimal price = skuInfoMapper.getRealPrice(skuId);
+        return price;
+    }
 
     }
 
