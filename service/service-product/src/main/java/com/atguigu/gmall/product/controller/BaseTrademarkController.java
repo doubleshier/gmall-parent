@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/admin/product")
 public class BaseTrademarkController {
@@ -20,7 +22,8 @@ public class BaseTrademarkController {
 
         return  Result.ok(baseTrademarkPage);
     }
-    @PostMapping("/baseTrademark/update")
+
+    @PutMapping("/baseTrademark/update")
     public Result updatebaseTrademark(@RequestBody BaseTrademark trademark){
 
         baseTrademarkService.updateById(trademark);
@@ -42,5 +45,11 @@ public class BaseTrademarkController {
     public Result deletebaseTrademark(@PathVariable("tid")Long tid){
         baseTrademarkService.removeById(tid);
         return Result.ok();
+    }
+
+    @GetMapping("/baseTrademark/getTrademarkList")
+    public Result getTrademarkList(){
+        List<BaseTrademark> list = baseTrademarkService.list();
+        return Result.ok(list);
     }
 }

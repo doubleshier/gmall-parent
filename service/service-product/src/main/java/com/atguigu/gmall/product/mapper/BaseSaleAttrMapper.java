@@ -12,6 +12,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface BaseSaleAttrMapper extends BaseMapper<BaseSaleAttr> {
 
+
+
 }
 
 
