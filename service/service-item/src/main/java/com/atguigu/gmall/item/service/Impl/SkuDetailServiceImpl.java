@@ -1,6 +1,7 @@
 package com.atguigu.gmall.item.service.Impl;
 
 import com.atguigu.gmall.common.result.Result;
+import com.atguigu.gmall.common.util.Jsons;
 import com.atguigu.gmall.item.feign.SkuDetailFeignClient;
 import com.atguigu.gmall.item.service.SkuDetailService;
 import com.atguigu.gmall.model.product.SkuImage;
@@ -9,12 +10,15 @@ import com.atguigu.gmall.model.product.SpuSaleAttr;
 import com.atguigu.gmall.model.to.CategoryViewTo;
 import com.atguigu.gmall.model.to.SkuDetailTo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SkuDetailServiceImpl implements SkuDetailService {
@@ -23,9 +27,10 @@ public class SkuDetailServiceImpl implements SkuDetailService {
     SkuDetailFeignClient skuDetailFeignClient;
     @Autowired
     ThreadPoolExecutor executor;
+    @Autowired
+    StringRedisTemplate redisTemplate;
 
-    @Override
-    public SkuDetailTo getSkuDetail(Long skuId) {
+    public SkuDetailTo getSkuDetailFromRpc(Long skuId) {
         SkuDetailTo detailTo = new SkuDetailTo();
 
         //以前   一次远程超级调用【网络交互比较浪费时间】  查出所有数据直接给我们返回
@@ -93,4 +98,32 @@ public class SkuDetailServiceImpl implements SkuDetailService {
 
         return detailTo;
     }
+    @Override
+    public SkuDetailTo getSkuDetail(Long skuId) {
+
+        String jsonStr = redisTemplate.opsForValue().get("sku:info:" + skuId);
+        if("x".equals(jsonStr)){
+
+            return null;
+        }
+        //
+        if(StringUtils.isEmpty(jsonStr)){
+
+            SkuDetailTo fromRpc = getSkuDetailFromRpc(skuId);
+            //2.2、放入缓存【查到的对象转为json字符串保存到redis】
+            String cacheJson = "x";
+            if(fromRpc!=null){
+                cacheJson =  Jsons.toStr(fromRpc);
+                redisTemplate.opsForValue().set("sku:info:" + skuId,cacheJson,7, TimeUnit.DAYS);
+            }else {
+                redisTemplate.opsForValue().set("sku:info:" + skuId,cacheJson,30,TimeUnit.MINUTES);
+            }
+
+            return fromRpc;
+        }
+        //3、缓存中有. 把json转成指定的对象
+        SkuDetailTo skuDetailTo = Jsons.toObj(jsonStr,SkuDetailTo.class);
+        return skuDetailTo;
+    }
+
 }
